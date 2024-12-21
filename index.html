@@ -1,138 +1,139 @@
 <!DOCTYPE html>
-<html>
-<!-- Previous head section and styles remain the same -->
+<html lang="en">
 <head>
-    <title>MBTI Personality Quiz</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
-    <style>
-        /* Previous styles remain the same */
-        #bookRecommendations {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-            color: #666;
-        }
-        .book-list {
-            margin-top: 15px;
-            padding-left: 20px;
-        }
-        .book {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MBTI Quiz</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .question {
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+    }
+  </style>
 </head>
 <body>
-    <!-- Previous HTML structure remains the same until the results section -->
-
-    <!-- Updated Results Section -->
-    <div id="results">
-        <h2>Your Results</h2>
-        <div id="userName"></div>
-        <div id="personalityType"></div>
-        <div id="visualizationContainer"></div>
-        <div id="bookRecommendations">
-            <h3>Recommended Books</h3>
-            <div id="recommendationsLoading" class="loading">Loading recommendations...</div>
-            <div id="recommendationsList" class="book-list"></div>
-        </div>
+  <h1>MBTI Quiz</h1>
+  <div id="form-container">
+    <div class="question">
+      <label>What's your name?</label>
+      <input type="text" id="name" />
     </div>
+    <div class="question">
+      <label>What's your age?</label>
+      <input type="number" id="age" />
+    </div>
+    <div class="question">
+      <label>What's your city?</label>
+      <input type="text" id="city" />
+    </div>
+    <h2>Answer the following questions:</h2>
+    <div id="questions"></div>
+    <button onclick="submitAnswers()">Submit</button>
+  </div>
 
-    <script>
-        // Previous JavaScript code remains the same until showResults function
+  <script>
+    let questions = [
+      { text: 'Do you prefer group activities or solo time?', trait: 'E-I' },
+      { text: 'Do you focus more on details or big picture?', trait: 'S-N' },
+      { text: 'Do you make decisions based on logic or emotions?', trait: 'T-F' },
+      { text: 'Do you prefer schedules or spontaneity?', trait: 'J-P' },
+      { text: 'Are you energized by social interactions or drained?', trait: 'E-I' },
+      { text: 'Do you trust facts more than theories?', trait: 'S-N' },
+      { text: 'Do you value empathy over analysis?', trait: 'T-F' },
+      { text: 'Do you plan ahead or go with the flow?', trait: 'J-P' },
+    ];
 
-        async function getBookRecommendations(personality, age, goals) {
-            const prompt = `Based on this profile:
-                - MBTI Type: ${personality}
-                - Age: ${age}
-                - Goals: ${goals}
-                
-                Please recommend 3 books that would be most helpful for this person's growth and goals. 
-                For each book include: title, author, and a brief explanation of why it's relevant.
-                Keep each recommendation concise but meaningful.`;
+    let scores = {
+      'E-I': 0,
+      'S-N': 0,
+      'T-F': 0,
+      'J-P': 0,
+    };
 
-            try {
-                const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDnGeRO2mfwjACk3-xKOQfvm-dGLdwYPbw", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }]
-                    })
-                });
+    function setupQuestions() {
+      const container = document.getElementById('questions');
+      questions.forEach((q, index) => {
+        const div = document.createElement('div');
+        div.classList.add('question');
+        div.innerHTML = `
+          <p>${index + 1}. ${q.text}</p>
+          <label><input type="radio" name="q${index}" value="1"> Option 1</label>
+          <label><input type="radio" name="q${index}" value="0"> Option 2</label>
+        `;
+        container.appendChild(div);
+      });
+    }
 
-                const data = await response.json();
-                return data.candidates[0].content.parts[0].text;
-            } catch (error) {
-                console.error('Error fetching recommendations:', error);
-                return 'Sorry, we could not generate book recommendations at this time.';
-            }
+    function submitAnswers() {
+      questions.forEach((q, index) => {
+        const value = document.querySelector(`input[name='q${index}']:checked`);
+        if (value) {
+          scores[q.trait] += parseInt(value.value);
         }
+      });
 
-        function displayRecommendations(recommendations) {
-            const recommendationsDiv = document.getElementById('recommendationsList');
-            const loadingDiv = document.getElementById('recommendationsLoading');
-            
-            // Hide loading message
-            loadingDiv.style.display = 'none';
-            
-            // Format and display recommendations
-            const formattedRecommendations = recommendations
-                .split('\n')
-                .filter(line => line.trim() !== '')
-                .map(line => `<div class="book">${line}</div>`)
-                .join('');
-            
-            recommendationsDiv.innerHTML = formattedRecommendations;
+      const percentages = {
+        E: (scores['E-I'] / 2) * 100,
+        I: 100 - (scores['E-I'] / 2) * 100,
+        S: (scores['S-N'] / 2) * 100,
+        N: 100 - (scores['S-N'] / 2) * 100,
+        T: (scores['T-F'] / 2) * 100,
+        F: 100 - (scores['T-F'] / 2) * 100,
+        J: (scores['J-P'] / 2) * 100,
+        P: 100 - (scores['J-P'] / 2) * 100,
+      };
+
+      const mbti =
+        (percentages.E > 50 ? 'E' : 'I') +
+        (percentages.S > 50 ? 'S' : 'N') +
+        (percentages.T > 50 ? 'T' : 'F') +
+        (percentages.J > 50 ? 'J' : 'P');
+
+      document.getElementById('form-container').innerHTML = `<h2>Your MBTI Type: ${mbti}</h2>`;
+      drawChart(percentages);
+    }
+
+    function drawChart(percentages) {
+      new p5((p) => {
+        p.setup = () => {
+          p.createCanvas(400, 400);
+          p.noLoop();
+        };
+
+        p.draw = () => {
+          p.background(240);
+          drawBar(p, 'Introvert', 'Extrovert', percentages.I, percentages.E, 50);
+          drawBar(p, 'Sensing', 'Intuitive', percentages.S, percentages.N, 150);
+          drawBar(p, 'Thinking', 'Feeling', percentages.T, percentages.F, 250);
+          drawBar(p, 'Judging', 'Perceiving', percentages.J, percentages.P, 350);
+        };
+
+        function drawBar(p, leftLabel, rightLabel, leftValue, rightValue, yPos) {
+          p.textSize(12);
+          p.textAlign(p.LEFT);
+          p.text(leftLabel, 10, yPos);
+          p.textAlign(p.RIGHT);
+          p.text(rightLabel, 390, yPos);
+
+          p.fill(200);
+          p.rect(50, yPos - 10, 300, 10);
+
+          const pos = p.map(rightValue, 0, 100, 50, 350);
+          p.fill(0);
+          p.ellipse(pos, yPos - 5, 10, 10);
         }
+      });
+    }
 
-        async function showResults() {
-            document.getElementById('quiz').style.display = 'none';
-            document.getElementById('results').style.display = 'block';
-
-            // Get user's information
-            const userName = document.getElementById('name').value;
-            const userAge = document.getElementById('age').value;
-            const userGoals = document.getElementById('goals').value;
-
-            document.getElementById('userName').innerHTML = `<h3>Results for ${userName}</h3>`;
-
-            // Calculate MBTI type
-            const type = [
-                scores.E >= 1 ? 'E' : 'I',
-                scores.S >= 1 ? 'S' : 'N',
-                scores.T >= 1 ? 'T' : 'F',
-                scores.J >= 1 ? 'J' : 'P'
-            ].join('');
-
-            document.getElementById('personalityType').textContent = `Your MBTI Type: ${type}`;
-
-            // Initialize p5.js sketch
-            new p5(sketch);
-
-            // Get and display book recommendations
-            try {
-                const recommendations = await getBookRecommendations(type, userAge, userGoals);
-                displayRecommendations(recommendations);
-            } catch (error) {
-                document.getElementById('recommendationsLoading').textContent = 
-                    'Sorry, we could not generate book recommendations at this time.';
-            }
-        }
-
-        // Previous p5.js sketch code remains the same
-    </script>
+    setupQuestions();
+  </script>
 </body>
 </html>

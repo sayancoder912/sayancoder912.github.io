@@ -10,33 +10,61 @@
       font-family: Arial, sans-serif;
       margin: 20px;
     }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
     .question {
       margin-bottom: 20px;
     }
-    canvas {
-      display: block;
-      margin: 20px auto;
+    button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #ccc;
     }
   </style>
 </head>
 <body>
-  <h1>MBTI Quiz</h1>
-  <div id="form-container">
-    <div class="question">
-      <label>What's your name?</label>
-      <input type="text" id="name" />
+  <div class="container">
+    <h1>MBTI Personality Quiz</h1>
+    <div id="form-container">
+      <div id="personal-info">
+        <h2>Personal Information</h2>
+        <div class="question">
+          <label>Name:</label>
+          <input type="text" id="name" />
+        </div>
+        <div class="question">
+          <label>Age:</label>
+          <input type="number" id="age" />
+        </div>
+        <div class="question">
+          <label>City:</label>
+          <input type="text" id="city" />
+        </div>
+        <div class="question">
+          <label>Goals in life:</label>
+          <textarea id="goals"></textarea>
+        </div>
+        <button onclick="startQuiz()">Start Quiz</button>
+      </div>
+
+      <div id="quiz-container" style="display: none;">
+        <h2>Answer the following question:</h2>
+        <div id="question"></div>
+        <button id="next-btn" onclick="nextQuestion()" disabled>Next</button>
+      </div>
     </div>
-    <div class="question">
-      <label>What's your age?</label>
-      <input type="number" id="age" />
-    </div>
-    <div class="question">
-      <label>What's your city?</label>
-      <input type="text" id="city" />
-    </div>
-    <h2>Answer the following questions:</h2>
-    <div id="questions"></div>
-    <button onclick="submitAnswers()">Submit</button>
   </div>
 
   <script>
@@ -57,29 +85,41 @@
       'T-F': 0,
       'J-P': 0,
     };
+    let currentQuestion = 0;
 
-    function setupQuestions() {
-      const container = document.getElementById('questions');
-      questions.forEach((q, index) => {
-        const div = document.createElement('div');
-        div.classList.add('question');
-        div.innerHTML = `
-          <p>${index + 1}. ${q.text}</p>
-          <label><input type="radio" name="q${index}" value="1"> Option 1</label>
-          <label><input type="radio" name="q${index}" value="0"> Option 2</label>
-        `;
-        container.appendChild(div);
-      });
+    function startQuiz() {
+      document.getElementById('personal-info').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      showQuestion();
     }
 
-    function submitAnswers() {
-      questions.forEach((q, index) => {
-        const value = document.querySelector(`input[name='q${index}']:checked`);
-        if (value) {
-          scores[q.trait] += parseInt(value.value);
-        }
-      });
+    function showQuestion() {
+      const questionContainer = document.getElementById('question');
+      questionContainer.innerHTML = `
+        <p>${questions[currentQuestion].text}</p>
+        <label><input type="radio" name="q" value="1" onchange="enableNextButton()"> Option 1</label>
+        <label><input type="radio" name="q" value="0" onchange="enableNextButton()"> Option 2</label>
+      `;
+      document.getElementById('next-btn').disabled = true;
+    }
 
+    function enableNextButton() {
+      document.getElementById('next-btn').disabled = false;
+    }
+
+    function nextQuestion() {
+      const value = document.querySelector('input[name="q"]:checked').value;
+      scores[questions[currentQuestion].trait] += parseInt(value);
+
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        showQuestion();
+      } else {
+        calculateMBTI();
+      }
+    }
+
+    function calculateMBTI() {
       const percentages = {
         E: (scores['E-I'] / 2) * 100,
         I: 100 - (scores['E-I'] / 2) * 100,
@@ -97,7 +137,7 @@
         (percentages.T > 50 ? 'T' : 'F') +
         (percentages.J > 50 ? 'J' : 'P');
 
-      document.getElementById('form-container').innerHTML = `<h2>Your MBTI Type: ${mbti}</h2>`;
+      document.getElementById('quiz-container').innerHTML = `<h2>Your MBTI Type: ${mbti}</h2>`;
       drawChart(percentages);
     }
 
@@ -132,8 +172,6 @@
         }
       });
     }
-
-    setupQuestions();
   </script>
 </body>
 </html>
